@@ -1,0 +1,12 @@
+streamlit
+python-dotenv
+langchain-groq
+langchain-core
+langchain
+langchain-community
+groq
+scikit-learn 
+pdfplumber
+Pillow 
+sentence-transformers
+python-docx
