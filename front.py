@@ -13,11 +13,11 @@ def apply_custom_styles():
     st.markdown("""
     <style>
         .stApp {
-            background:linear-gradient(to right top, #1e1e2f, #2a1f3d, #402647, #5b2b4d, #7a2e4e);
+            background: linear-gradient(to right top, #ff9a9e, #fecfef, #fcb7b7, #ffdde1, #ffc1cc);
         }
 
         .stButton>button {
-            background-color: #E5DEFF;
+            background-color: #ffb6c1; /* light pink */
             color: #333;
             border: none;
             padding: 15px 20px;
@@ -32,11 +32,9 @@ def apply_custom_styles():
         .stButton>button:hover {
             transform: translateY(-5px);
             box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+            background-color: #ff85a1; /* darker pink on hover */
         }
-
-        
-
-        </style>
+    </style>
     """, unsafe_allow_html=True)
 
 apply_custom_styles()
