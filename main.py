@@ -1,70 +1,48 @@
 import streamlit as st
+import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from docx import Document
 import io
 
-# Load environment variables
-load_dotenv()
+# -------------------- Load Environment Variables -------------------- #
+load_dotenv()  # Reads .env file
 
+# -------------------- Helper Functions -------------------- #
 
 def create_docx(resume_text):
+    """Create a Word document from resume text."""
     doc = Document()
     for line in resume_text.split("\n"):
         doc.add_paragraph(line)
-    
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
     return buffer
 
 def create_resume_prompt():
+    """Define the system + human prompt for Groq."""
     return ChatPromptTemplate.from_messages([
-        ("system", """You are RESUME_BUILDER PRO, an AI assistant that creates professional resumes based on user-provided information.STRICTLY using ONLY the information provided by the user on behalf of the user. Do not add, infer, or invent any information not explicitly provided.
+        ("system", """You are RESUME_BUILDER PRO, an AI assistant that creates professional resumes based on user-provided information. STRICTLY use ONLY the information provided by the user. Do not add, infer, or invent any information.
 
-Your task is to:
-1. Analyze the provided user details
-2. Generate a well-structured, ATS-friendly resume in markdown format
-3. Follow these guidelines:
-   - Write a **first-person resume**, avoiding third-person references like the user's name
-   - Use professional resume sections
-   - Use industry-specific keywords
-   - tailor the resume according to {job_description} to get a hight ATS score
-   - Make it **ATS-friendly** with clean, keyword-rich phrasing
-   - Incorporate powerful action verbs
-   - Maintain consistent formatting
-   - Keep length appropriate (1-2 pages)
-   - Avoid generic or fluffy statements unless supported by input
-   - Be concise, impactful, and tailored to the target job
-   - If a section has no data, omit it
-   - in the end give a first person professional summary of 4-5 sentence of career focus,goals and why the user is fit for the job pronouns like "I"
-
+Your task:
+1. Analyze the provided details.
+2. Generate a well-structured, ATS-friendly resume in markdown.
+3. Use first-person phrasing.
+4. Follow professional formatting and include industry keywords.
+5. Include a concise career summary at the end (4-5 sentences).
 
 Resume Structure:
-[Header]
-Name | Contact Info | Portfolio/LinkedIn
-
-[Professional Summary]
-2-3 sentence career overview
-
-[Work Experience]
-- Position @ Company (Dates)
-  • Achievement-oriented bullet points
-  • Quantify where possible
-
-[Education]
-Degree @ Institution (Year)
-
-[Skills]
-- Categorized technical/hard skills
-- Soft skills relevant to position
-
-[Additional Sections]
-Certifications | Projects | Languages"""),
+[Header] Name | Contact Info | Portfolio/LinkedIn
+[Professional Summary] 2-3 sentences
+[Work Experience] - Position @ Company (Dates) • Bullet points
+[Education] Degree @ Institution (Year)
+[Skills] Technical & Soft skills
+[Additional Sections] Certifications | Projects | Languages"""),
         
         ("human", """Create a professional resume with these details:
-        
+
 Personal Information:
 - Name: {name}
 - Email: {email}
@@ -92,19 +70,31 @@ Special Instructions:
     ])
 
 def generate_resume(user_inputs):
-    llm = ChatGroq(temperature=0.3, model_name="compound-beta")
+    """Generate a resume using Groq API."""
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise ValueError("Groq API key not found. Please set GROQ_API_KEY in your .env or Streamlit secrets.")
+
+    llm = ChatGroq(
+        api_key=groq_api_key,
+        temperature=0.3,
+        model_name="compound-beta"
+    )
     prompt = create_resume_prompt()
     chain = prompt | llm
     response = chain.invoke(user_inputs)
     return response.content
 
+# -------------------- Streamlit App -------------------- #
+
 def main():
-    
     st.title("📄 AI Resume Builder Pro")
     st.subheader("Create a professional resume in minutes")
 
     with st.expander("⚙️ Enter Your Information", expanded=True):
         with st.form("resume_form"):
+
+            # -------------------- User Details -------------------- #
             col1, col2 = st.columns(2)
             with col1:
                 name = st.text_input("Full Name*", placeholder="John Doe")
@@ -156,6 +146,7 @@ def main():
             
             submitted = st.form_submit_button("✨ Generate Resume")
     
+    # -------------------- Handle Submission -------------------- #
     if submitted:
         if not name or not email or not phone or not target_job:
             st.error("Please fill in all required fields (*)")
@@ -177,19 +168,19 @@ def main():
                 
                 try:
                     resume = generate_resume(user_inputs)
-                    
                     st.success("✅ Resume generated successfully!")
                     st.markdown("---")
                     st.subheader("Your Professional Resume")
                     st.markdown(resume, unsafe_allow_html=True)
                     
                     st.download_button(
-                    label="📥 Download as Word",
-                    data=create_docx(resume),
-                    file_name="My_Resume.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        label="📥 Download as Word",
+                        data=create_docx(resume),
+                        file_name="My_Resume.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     )
                 except Exception as e:
                     st.error(f"Error generating resume: {str(e)}")
 
-
+if __name__ == "__main__":
+    main()
